@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تطبيق إزالة خلفية الصور الاحترافي</title>
+  <style>
+    :root {
+      --primary-color: #3498db;
+      --secondary-color: #2980b9;
+      --accent-color: #e74c3c;
+      --text-color: #333;
+      --light-bg: #f9f9f9;
+      --border-radius: 8px;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Tajawal', 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background-color: #f5f7fa;
+      color: var(--text-color);
+      line-height: 1.6;
+      min-height: 100vh;
+      transition: background 0.3s ease;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
+      text-align: center;
+      padding: 2rem 1rem;
+      border-radius: 0 0 var(--border-radius) var(--border-radius);
+      box-shadow: var(--shadow);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    .app-card {
+      background-color: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .app-title {
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .upload-area {
+      border: 2px dashed #ccc;
+      border-radius: var(--border-radius);
+      padding: 2rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .upload-area:hover {
+      border-color: var(--primary-color);
+      background-color: rgba(52, 152, 219, 0.05);
+    }
+
+    .upload-area.active {
+      border-color: #2ecc71;
+      background-color: rgba(46, 204, 113, 0.05);
+    }
+
+    .upload-icon {
+      font-size: 3rem;
+      color: #ccc;
+      margin-bottom: 1rem;
+    }
+
+    .upload-text {
+      margin-bottom: 1rem;
+    }
+
+    #file-input {
+      display: none;
+    }
+
+    .upload-btn {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background-color 0.3s ease;
+      display: inline-block;
+    }
+
+    .upload-btn:hover {
+      background-color: var(--secondary-color);
+    }
+
+    .preview-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .preview-box {
+      flex: 1 1 48%;
+      min-width: 250px;
+      max-width: 100%;
+      border: 1px solid #eee;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .preview-header {
+      background-color: var(--light-bg);
+      padding: 0.75rem;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+      font-weight: 600;
+    }
+
+    .preview-image-container {
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: transparent;
+      background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+                        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+                        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+
+    .preview-image {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .controls {
+      margin-top: 1.5rem;
+    }
+
+    .control-group {
+      margin-bottom: 1rem;
+    }
+
+    .control-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    .control-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .radio-label {
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+      margin-left: 1rem;
+    }
+
+    .radio-label input {
+      margin-left: 0.5rem;
+    }
+
+    .color-picker {
+      height: 2.5rem;
+      border: none;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+    }
+
+    .bg-image-input {
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: var(--border-radius);
+      width: 100%;
+      max-width: 300px;
+    }
+
+    .process-btn {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: background-color 0.3s ease;
+      margin-top: 1rem;
+      font-weight: 600;
+    }
+
+    .process-btn:hover {
+      background-color: #c0392b;
+    }
+
+    .download-btn {
+      background-color: #2ecc71;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background-color 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 1rem;
+    }
+
+    .download-btn:hover {
+      background-color: #27ae60;
+    }
+
+    .flash {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 1rem;
+      border-radius: var(--border-radius);
+      margin-bottom: 1.5rem;
+      border: 1px solid #f5c6cb;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 2rem;
+      height: 2rem;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      bottom: 2rem;
+      left: 2rem;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      z-index: 10;
+      font-size: 1.2rem;
+    }
+
+    .theme-toggle:hover {
+      background-color: var(--secondary-color);
+    }
+
+    .dark-mode {
+      background-color: #1a1a2e;
+      color: #f5f5f5;
+    }
+
+    .dark-mode .app-card {
+      background-color: #16213e;
+      color: #f5f5f5;
+    }
+
+    .dark-mode .app-title {
+      color: #4da8da;
+    }
+
+    .dark-mode .preview-header {
+      background-color: #0f3460;
+      color: #f5f5f5;
+      border-color: #16213e;
+    }
+
+    .dark-mode .upload-area {
+      border-color: #0f3460;
+      color: #f5f5f5;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .preview-container {
+        flex-direction: column;
+      }
+      .preview-box {
+        min-width: 100%;
+      }
+    }
+
+    .feature-list {
+      margin: 2rem 0;
+      padding: 0 1rem;
+      list-style-type: none;
+    }
+
+    .feature-item {
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .feature-icon {
+      color: var(--primary-color);
+      margin-left: 0.5rem;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 2rem 0;
+      margin-top: 2rem;
+      color: #777;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>تطبيق إزالة خلفية الصور الاحترافي</h1>
+    <p>أزل خلفية صورك بدقة عالية واختر خلفية جديدة بسهولة</p>
+  </div>
+
+  {% block content %}{% endblock %}
+
+  <div class="footer">
+    <p>تطبيق إزالة خلفية الصور الاحترافي © 2025</p>
+  </div>
+
+  <button class="theme-toggle" id="theme-toggle">🌙</button>
+
+  <script>
+    // كود تبديل الوضع المظلم
+    document.addEventListener('DOMContentLoaded', function() {
+      const themeToggle = document.getElementById('theme-toggle');
+      
+      themeToggle.addEventListener('click', function() {
+        document.body.classList.toggle('dark-mode');
+        
+        if (document.body.classList.contains('dark-mode')) {
+          themeToggle.innerHTML = '☀️';
+        } else {
+          themeToggle.innerHTML = '🌙';
+        }
+      });
+    });
+  </script>
+  
+  {% block scripts %}{% endblock %}
+</body>
+</html>

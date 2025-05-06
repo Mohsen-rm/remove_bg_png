@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div class="app-card">
+    <h2 class="app-title">رفع الصورة</h2>
+    
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash">
+          {% for msg in messages %}{{ msg }}<br>{% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    
+    <div id="upload-area" class="upload-area">
+      <div class="upload-icon">📁</div>
+      <p class="upload-text">اسحب الصورة هنا أو انقر للاختيار</p>
+      <input type="file" id="file-input" accept="image/*">
+      <button class="upload-btn">اختر صورة</button>
+    </div>
+
+    <div class="preview-container hidden" id="preview-container">
+      <div class="preview-box">
+        <div class="preview-header">الصورة الأصلية</div>
+        <div class="preview-image-container">
+          <img id="original-preview" class="preview-image">
+        </div>
+      </div>
+      <div class="preview-box">
+        <div class="preview-header">بعد إزالة الخلفية</div>
+        <div class="preview-image-container" id="result-bg-container">
+          <img id="result-preview" class="preview-image hidden">
+          <div id="processing-indicator" class="hidden">
+            <div class="loading-spinner"></div>
+            <p>جاري المعالجة...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls hidden" id="controls">
+      <h3>إعدادات الخلفية الجديدة</h3>
+      
+      <div class="control-group">
+        <label class="control-label">اختر نوع الخلفية:</label>
+        <div class="control-options">
+          <label class="radio-label">
+            <input type="radio" name="bg-type" value="transparent" checked>
+            شفافة
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="bg-type" value="color">
+            لون
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="bg-type" value="image">
+            صورة
+          </label>
+        </div>
+      </div>
+
+      <div class="control-group hidden" id="color-control">
+        <label class="control-label">اختر اللون:</label>
+        <input type="color" id="bg-color" class="color-picker" value="#ffffff">
+      </div>
+
+      <div class="control-group hidden" id="image-control">
+        <label class="control-label">صورة الخلفية:</label>
+        <input type="file" id="bg-image-file" accept="image/*" class="bg-image-input">
+      </div>
+
+      <button id="process-btn" class="process-btn">
+        معالجة الصورة
+        <span id="process-spinner" class="loading-spinner hidden"></span>
+      </button>
+
+      <a id="download-btn" class="download-btn hidden" download="processed_image.png">تحميل الصورة</a>
+    </div>
+  </div>
+
+  <div class="app-card">
+    <h2 class="app-title">مميزات التطبيق</h2>
+    <ul class="feature-list">
+      <li class="feature-item"><span class="feature-icon">✓</span> إزالة خلفية الصورة بدقة عالية</li>
+      <li class="feature-item"><span class="feature-icon">✓</span> إمكانية إضافة خلفية شفافة</li>
+      <li class="feature-item"><span class="feature-icon">✓</span> إمكانية إضافة خلفية بلون محدد</li>
+      <li class="feature-item"><span class="feature-icon">✓</span> إمكانية إضافة صورة كخلفية</li>
+      <li class="feature-item"><span class="feature-icon">✓</span> واجهة مستخدم سهلة وبسيطة</li>
+      <li class="feature-item"><span class="feature-icon">✓</span> معالجة سريعة للصور</li>
+      <li class="feature-item"><span class="feature-icon">✓</span> دعم الوضع المظلم</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // العناصر
+  const uploadArea = document.getElementById('upload-area');
+  const fileInput = document.getElementById('file-input');
+  const uploadBtn = document.querySelector('.upload-btn');
+  const previewContainer = document.getElementById('preview-container');
+  const originalPreview = document.getElementById('original-preview');
+  const resultPreview = document.getElementById('result-preview');
+  const resultBgContainer = document.getElementById('result-bg-container');
+  const controlsSection = document.getElementById('controls');
+  const processingIndicator = document.getElementById('processing-indicator');
+  const processBtn = document.getElementById('process-btn');
+  const processSpinner = document.getElementById('process-spinner');
+  const downloadBtn = document.getElementById('download-btn');
+
+  // عناصر الخلفية
+  const bgTypeRadios = document.querySelectorAll('input[name="bg-type"]');
+  const colorControl = document.getElementById('color-control');
+  const imageControl = document.getElementById('image-control');
+  const bgColorPicker = document.getElementById('bg-color');
+  const bgImageFile = document.getElementById('bg-image-file');
+
+  let originalImage = null;
+  let processedImage = null;
+  let processedFileId = null; // معرف الملف المعالج
+
+  // معالجة الرفع
+  uploadBtn.addEventListener('click', () => {
+    fileInput.click();
+  });
+
+  uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('active');
+  });
+
+  uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('active');
+  });
+
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('active');
+
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      handleFileSelect();
+    }
+  });
+
+  fileInput.addEventListener('change', handleFileSelect);
+
+  function handleFileSelect() {
+    if (fileInput.files && fileInput.files[0]) {
+      const file = fileInput.files[0];
+
+      // التحقق من نوع الملف
+      if (!file.type.match('image.*')) {
+        showFlash('الرجاء اختيار ملف صورة صالح');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        originalImage = e.target.result;
+        originalPreview.src = originalImage;
+        previewContainer.classList.remove('hidden');
+        controlsSection.classList.remove('hidden');
+        resultPreview.classList.add('hidden');
+        processingIndicator.classList.add('hidden');
+        downloadBtn.classList.add('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  // اختيار نوع الخلفية
+  bgTypeRadios.forEach(radio => {
+    radio.addEventListener('change', updateControlsVisibility);
+  });
+
+  function updateControlsVisibility() {
+    const selectedType = document.querySelector('input[name="bg-type"]:checked').value;
+
+    colorControl.classList.add('hidden');
+    imageControl.classList.add('hidden');
+
+    if (selectedType === 'color') {
+      colorControl.classList.remove('hidden');
+    } else if (selectedType === 'image') {
+      imageControl.classList.remove('hidden');
+    }
+  }
+
+  // معالجة الصورة
+  processBtn.addEventListener('click', processImage);
+
+  function processImage() {
+    if (!originalImage) {
+      showFlash('الرجاء اختيار صورة أولاً');
+      return;
+    }
+
+    // إظهار المؤشر
+    resultPreview.classList.add('hidden');
+    processingIndicator.classList.remove('hidden');
+    processBtn.disabled = true;
+    processSpinner.classList.remove('hidden');
+
+    // إنشاء بيانات النموذج
+    const formData = new FormData();
+
+    // إضافة الصورة
+    if (fileInput.files[0]) {
+      formData.append('image', fileInput.files[0]);
+    } else {
+      // إذا تم رفع الصورة بواسطة السحب والإفلات
+      formData.append('image_data', originalImage);
+    }
+
+    // إضافة نوع الخلفية
+    const bgType = document.querySelector('input[name="bg-type"]:checked').value;
+    formData.append('bg_type', bgType);
+
+    // إضافة بيانات الخلفية حسب النوع
+    if (bgType === 'color') {
+      formData.append('bg_color', bgColorPicker.value);
+    } else if (bgType === 'image' && bgImageFile.files[0]) {
+      formData.append('bg_image', bgImageFile.files[0]);
+    }
+
+    // إرسال الطلب للمعالجة
+    fetch('/process', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // إظهار الصورة النهائية
+        processedImage = data.image;
+        processedFileId = data.file_id; // تخزين معرف الملف
+        resultPreview.src = processedImage;
+        resultPreview.classList.remove('hidden');
+        downloadBtn.classList.remove('hidden');
+
+        // تحديث رابط التحميل
+        downloadBtn.href = `/download/${processedFileId}`;
+      } else {
+        showFlash(data.error || 'حدث خطأ أثناء المعالجة');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showFlash('حدث خطأ أثناء المعالجة');
+    })
+    .finally(() => {
+      // إخفاء المؤشر
+      processingIndicator.classList.add('hidden');
+      processBtn.disabled = false;
+      processSpinner.classList.add('hidden');
+    });
+  }
+
+  // رسائل الخطأ
+  function showFlash(message) {
+    const flashContainer = document.createElement('div');
+    flashContainer.className = 'flash';
+    flashContainer.textContent = message;
+
+    const container = document.querySelector('.app-card');
+    container.insertBefore(flashContainer, container.firstChild.nextSibling);
+
+    setTimeout(() => {
+      flashContainer.remove();
+    }, 5000);
+  }
+});
+</script>
+{% endblock %}
